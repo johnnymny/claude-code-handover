@@ -15,6 +15,8 @@ When Claude Code runs out of context, it **compacts** the conversation — compr
 
 **claude-code-handover** automatically generates a supplementary HANDOVER document that captures what compaction misses, so your agent recovers with full context.
 
+The HANDOVER adds only ~4K tokens (2% of the context window) while restoring decision rationale, concrete examples, and user directives that compaction loses.
+
 ## How it works
 
 ```
@@ -163,7 +165,7 @@ If you have a custom statusline, read this JSON to display progress. Otherwise, 
 
 ## Cost
 
-Each compaction triggers 1-2 sonnet calls (~30-50K input tokens). This happens only when context is compacted, not on every message.
+Generation runs in the background, triggering 1-2 sonnet calls only when compaction occurs. It does not run on regular messages.
 
 ## License
 
