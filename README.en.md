@@ -10,12 +10,12 @@ When Claude Code runs out of context, it **compacts** the conversation — compr
 
 - **Decision rationale** — why you chose approach A over B
 - **Failed approaches** — what was tried and didn't work
-- **Concrete examples** — actual code snippets, commands, file paths
-- **User directives** — exact policy decisions and instructions
+- **User directives** — session-specific policy decisions and scope boundaries
+- **Corrections given during session** — mistakes the agent made that the user explicitly corrected
 
 **claude-code-handover** automatically generates a supplementary HANDOVER document that captures what compaction misses, so your agent recovers with full context.
 
-The HANDOVER adds only ~4K tokens (2% of the context window) while restoring decision rationale, concrete examples, and user directives that compaction loses.
+The HANDOVER adds only ~4K tokens (2% of the context window) while restoring decision rationale, user directives, and session corrections that compaction loses.
 
 ## How it works
 
