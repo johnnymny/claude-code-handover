@@ -159,18 +159,24 @@ Read these two files:
 1. Compaction summary (what is already preserved): {summary_file}
 2. Conversation transcript (raw source): {transcript_file}
 
-Read both files. Then write a HANDOVER document containing what the compaction summary is MISSING — specifically:
-- Reasoning chains: why choice A was made over B, with the logical steps
-- Concrete examples: actual code snippets, commands, file paths discussed
-- Failed approaches: what was tried, why it failed, and what was learned
-- User directives: exact policy decisions and instructions given
-- Incomplete work: precisely what is done vs not done
+Read both files. Then write a HANDOVER document containing what the compaction summary is MISSING.
+
+Focus on these four categories ONLY:
+1. **Decision rationale**: Why choice A was made over B. Include the reasoning chain, not just the conclusion.
+2. **Failed approaches**: What was tried and didn't work. Include WHY it failed so the same mistake isn't repeated.
+3. **User directives**: Session-specific policy decisions and scope boundaries for the current task.
+4. **Corrections given during session**: Mistakes the agent made that the user explicitly corrected. Include what was wrong and what the correct behavior is, so the same mistake is not repeated after compaction.
+
+Do NOT include:
+- Code snippets, file paths, or configuration examples (the agent can read source files directly)
+- Technical details that are already documented in code or config
+- Test procedures or verification steps
+- Anything the compaction summary already covers
 
 Rules:
 - Write in English
-- Max 3000 words
+- Max 1500 words
 - Use markdown headers
-- Do NOT repeat what the compaction summary already covers
 - Output ONLY the HANDOVER document"""
 
     return call_claude(prompt)
