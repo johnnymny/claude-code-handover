@@ -1,70 +1,72 @@
 # claude-code-handover
 
-Auto-generate HANDOVER documents when Claude Code compacts your conversation context.
+Claude Code のコンパクション時に HANDOVER ドキュメントを自動生成するフックシステム。
 
-## What is this?
+[English](README.en.md)
 
-When Claude Code runs out of context, it **compacts** the conversation — compressing everything into a summary. This works well for preserving the current state, but loses:
+## これは何？
 
-- **Decision rationale** — why you chose approach A over B
-- **Failed approaches** — what was tried and didn't work
-- **Concrete examples** — actual code snippets, commands, file paths
-- **User directives** — exact policy decisions and instructions
+Claude Code はコンテキストが溢れると会話を**コンパクション**（圧縮）します。現在の状態やユーザー発言はよく保持されますが、以下の情報は失われがちです：
 
-**claude-code-handover** automatically generates a supplementary HANDOVER document that captures what compaction misses, so your agent recovers with full context.
+- **判断の理由** — なぜ A ではなく B を選んだか、その論理展開
+- **失敗した試行** — 何を試して、なぜダメだったか
+- **具体例** — 実際のコードスニペット、コマンド、ファイルパス
+- **ユーザーの明示的指示** — ポリシー決定や方針
 
-## How it works
+**claude-code-handover** はコンパクションが落とす情報を自動で補完し、復帰後のエージェントが完全なコンテキストを取り戻せるようにします。
+
+## 仕組み
 
 ```
-Compaction triggers
-  → SessionStart(compact) hook fires
-  → Background worker extracts conversation diff from jsonl
-  → Calls claude -p --model sonnet to analyze transcript
-  → Writes HANDOVER-{session_id}.md
+コンパクション発生
+  → SessionStart(compact) hook 発火
+  → バックグラウンドで jsonl から会話差分を抽出
+  → claude -p --model sonnet でトランスクリプトを分析
+  → HANDOVER-{session_id}.md を書き出し
 
-Next user prompt
-  → UserPromptSubmit hook detects ready marker
-  → Injects file path into agent context
-  → Agent reads the HANDOVER document
+次のユーザープロンプト
+  → UserPromptSubmit hook がマーカーを検知
+  → エージェントのコンテキストにファイルパスを注入
+  → エージェントが HANDOVER を読み込む
 ```
 
-### Two-pass architecture
+### 2パスアーキテクチャ
 
-When a previous HANDOVER already exists (2nd+ compaction in the same session):
+同一セッションで2回目以降のコンパクションが発生した場合：
 
-- **Pass 1**: Extract new fragment from raw conversation diff
-- **Pass 2**: Merge existing HANDOVER + new fragment (both are refined documents)
+- **Pass 1**: 新しい会話差分から HANDOVER フラグメントを抽出
+- **Pass 2**: 既存 HANDOVER + 新フラグメントをマージ（精製済み同士の統合）
 
-This keeps processed content separate from raw transcript noise.
+生のトランスクリプトと精製済みコンテンツを混ぜないことで品質を保ちます。
 
-### What you see
+### ユーザーに見えるもの
 
-- **User terminal**: Nothing (completely transparent)
-- **Status bar**: `📝HANDOVER extracting` → `📝HANDOVER merging` → `📝HANDOVER ready` (if using statusline)
-- **Agent context**: Receives file path, reads the document automatically
+- **ターミナル**: 何も表示されない（完全に透過的）
+- **ステータスバー**: `📝HANDOVER extracting` → `📝HANDOVER merging` → `📝HANDOVER ready`（statusline 使用時）
+- **エージェント**: ファイルパスを受け取り、自動で読み込む
 
-## Installation
+## インストール
 
-### 1. Copy hook scripts
+### 1. フックスクリプトをコピー
 
-Copy the 4 files from `hooks/` to `~/.claude/hooks/`:
+`hooks/` の4ファイルを `~/.claude/hooks/` にコピーします：
 
 ```bash
 mkdir -p ~/.claude/hooks
 cp hooks/* ~/.claude/hooks/
 ```
 
-On Windows:
+Windows:
 ```powershell
 New-Item -ItemType Directory -Force "$env:USERPROFILE\.claude\hooks"
 Copy-Item hooks\* "$env:USERPROFILE\.claude\hooks\"
 ```
 
-### 2. Add hook configuration
+### 2. フック設定を追加
 
-Add the following to your `~/.claude/settings.json`. If the file doesn't exist, create it.
+`~/.claude/settings.json` に以下を追加します。ファイルがなければ新規作成してください。
 
-If you already have a `hooks` section, merge the entries:
+既に `hooks` セクションがある場合はマージしてください：
 
 ```json
 {
@@ -94,41 +96,39 @@ If you already have a `hooks` section, merge the entries:
 }
 ```
 
-**Windows users**: Replace `~/.claude/hooks/` with the full path:
+**Windows**: `~/.claude/hooks/` をフルパスに置き換えてください：
 ```json
 "command": "python -X utf8 C:\\Users\\YourName\\.claude\\hooks\\handover_generate.py"
 ```
 
-### 3. Verify Python
+### 3. Python の確認
 
-The hooks require Python 3.10+. Verify it's available:
+Python 3.10+ が必要です。追加パッケージは不要（標準ライブラリのみ使用）。
 
 ```bash
 python --version
 ```
 
-No additional packages needed — only standard library modules are used.
+## ファイル構成
 
-## Files
+| ファイル | フック | 役割 |
+|---------|--------|------|
+| `handover_generate.py` | SessionStart (compact) | コンパクション後にバックグラウンドワーカーを起動 |
+| `handover_worker.py` | —（バックグラウンド） | jsonl 解析 → sonnet 呼び出し → HANDOVER 生成 |
+| `handover_inject.py` | UserPromptSubmit | マーカー検知 → ファイルパスをエージェントに注入 |
+| `handover_statusline.py` | —（オプション） | ステータス表示のスタンドアロンフォールバック |
 
-| File | Hook | Purpose |
-|------|------|---------|
-| `handover_generate.py` | SessionStart (compact) | Launches background worker after compaction |
-| `handover_worker.py` | — (background process) | Parses jsonl, calls sonnet, writes HANDOVER |
-| `handover_inject.py` | UserPromptSubmit | Detects ready marker, injects file path |
-| `handover_statusline.py` | — (optional statusline) | Standalone status display fallback |
+## 出力先
 
-## Output
-
-HANDOVER files are saved alongside session jsonl files:
+HANDOVER ファイルはセッションの jsonl と同じディレクトリに保存されます：
 
 ```
 ~/.claude/projects/{project-path}/HANDOVER-{session_id}.md
 ```
 
-## Status display
+## ステータス表示
 
-`handover_worker.py` writes progress to `~/.claude/handover-status.json`:
+`handover_worker.py` は進捗を `~/.claude/handover-status.json` に書き出します：
 
 ```json
 {
@@ -140,9 +140,9 @@ HANDOVER files are saved alongside session jsonl files:
 }
 ```
 
-Phases: `pass1` (extracting) → `pass2` (merging) → `done` | `error`
+フェーズ: `pass1`（抽出中） → `pass2`（マージ中） → `done` | `error`
 
-If you have a custom statusline, read this JSON to display progress. Otherwise, use `handover_statusline.py` as a standalone statusline command:
+カスタム statusline がある場合はこの JSON を読み取って表示できます。ない場合は `handover_statusline.py` をスタンドアロンの statusline として使えます：
 
 ```json
 {
@@ -153,16 +153,16 @@ If you have a custom statusline, read this JSON to display progress. Otherwise, 
 }
 ```
 
-## Requirements
+## 要件
 
-- Claude Code CLI with hooks support
+- Claude Code CLI（hooks サポートあり）
 - Python 3.10+
-- `claude -p --model sonnet` must work (valid authentication)
+- `claude -p --model sonnet` が動作すること（有効な認証）
 
-## Cost
+## コスト
 
-Each compaction triggers 1-2 sonnet calls (~30-50K input tokens). This happens only when context is compacted, not on every message.
+コンパクションごとに sonnet を1〜2回呼び出します（約30〜50Kトークン）。コンパクション時のみ発生し、通常のメッセージでは実行されません。
 
-## License
+## ライセンス
 
 MIT
