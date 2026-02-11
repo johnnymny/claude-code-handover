@@ -41,11 +41,16 @@ HANDOVER が追加するコンテキストは約4Kトークン（コンテキス
 
 生のトランスクリプトと精製済みコンテンツを混ぜないことで品質を保ちます。
 
-### ユーザーに見えるもの
+### ステータス表示
 
-- **ターミナル**: 何も表示されない（完全に透過的）
-- **ステータスバー**: `📝HANDOVER extracting` → `📝HANDOVER merging` → `📝HANDOVER ready`（statusline 使用時）
-- **エージェント**: ファイルパスを受け取り、自動で読み込む
+ステータスバーに生成状況がリアルタイムで表示されます。
+
+```
+📝HANDOVER extracting        ← 抽出中
+📝HANDOVER extracting (1/2)  ← 抽出中（マージ予定あり）
+📝HANDOVER merging (2/2)     ← マージ中
+📝HANDOVER ready             ← 完了（60秒後に自動消去）
+```
 
 ## インストール
 
@@ -128,7 +133,7 @@ HANDOVER ファイルはセッションの jsonl と同じディレクトリに�
 ~/.claude/projects/{project-path}/HANDOVER-{session_id}.md
 ```
 
-## ステータス表示
+## ステータス表示の仕組み
 
 `handover_worker.py` は進捗を `~/.claude/handover-status.json` に書き出します：
 

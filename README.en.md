@@ -41,11 +41,16 @@ When a previous HANDOVER already exists (2nd+ compaction in the same session):
 
 This keeps processed content separate from raw transcript noise.
 
-### What you see
+### Status display
 
-- **User terminal**: Nothing (completely transparent)
-- **Status bar**: `📝HANDOVER extracting` → `📝HANDOVER merging` → `📝HANDOVER ready` (if using statusline)
-- **Agent context**: Receives file path, reads the document automatically
+The status bar shows generation progress in real time.
+
+```
+📝HANDOVER extracting        ← Extracting
+📝HANDOVER extracting (1/2)  ← Extracting (merge pending)
+📝HANDOVER merging (2/2)     ← Merging
+📝HANDOVER ready             ← Done (auto-hides after 60s)
+```
 
 ## Installation
 
@@ -130,7 +135,7 @@ HANDOVER files are saved alongside session jsonl files:
 ~/.claude/projects/{project-path}/HANDOVER-{session_id}.md
 ```
 
-## Status display
+## How status display works
 
 `handover_worker.py` writes progress to `~/.claude/handover-status.json`:
 
