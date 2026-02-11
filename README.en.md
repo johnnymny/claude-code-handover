@@ -41,22 +41,12 @@ When a previous HANDOVER already exists (2nd+ compaction in the same session):
 
 This keeps processed content separate from raw transcript noise.
 
-### Status display
-
-The status bar shows generation progress in real time.
-
-```
-📝HANDOVER extracting        ← Extracting
-📝HANDOVER extracting (1/2)  ← Extracting (merge pending)
-📝HANDOVER merging (2/2)     ← Merging
-📝HANDOVER ready             ← Done (auto-hides after 60s)
-```
 
 ## Installation
 
 ### 1. Copy hook scripts
 
-Copy the 4 files from `hooks/` to `~/.claude/hooks/`:
+Copy the files from `hooks/` to `~/.claude/hooks/`:
 
 ```bash
 mkdir -p ~/.claude/hooks
@@ -125,7 +115,6 @@ No additional packages needed — only standard library modules are used.
 | `handover_generate.py` | SessionStart (compact) | Launches background worker after compaction |
 | `handover_worker.py` | — (background process) | Parses jsonl, calls sonnet, writes HANDOVER |
 | `handover_inject.py` | UserPromptSubmit | Detects ready marker, injects file path |
-| `handover_statusline.py` | — (optional statusline) | Standalone status display fallback |
 
 ## Output
 
@@ -135,32 +124,6 @@ HANDOVER files are saved alongside session jsonl files:
 ~/.claude/projects/{project-path}/HANDOVER-{session_id}.md
 ```
 
-## How status display works
-
-`handover_worker.py` writes progress to `~/.claude/handover-status.json`:
-
-```json
-{
-  "phase": "pass1",
-  "step": 1,
-  "total": 2,
-  "session_id": "abc-123",
-  "updated_at": "2026-02-12T01:48:32"
-}
-```
-
-Phases: `pass1` (extracting) → `pass2` (merging) → `done` | `error`
-
-If you have a custom statusline, read this JSON to display progress. Otherwise, use `handover_statusline.py` as a standalone statusline command:
-
-```json
-{
-  "statusLine": {
-    "type": "command",
-    "command": "python -X utf8 ~/.claude/hooks/handover_statusline.py"
-  }
-}
-```
 
 ## Requirements
 
