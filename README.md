@@ -41,22 +41,12 @@ HANDOVER が追加するコンテキストは約4Kトークン（コンテキス
 
 生のトランスクリプトと精製済みコンテンツを混ぜないことで品質を保ちます。
 
-### ステータス表示
-
-ステータスバーに生成状況がリアルタイムで表示されます。
-
-```
-📝HANDOVER extracting        ← 抽出中
-📝HANDOVER extracting (1/2)  ← 抽出中（マージ予定あり）
-📝HANDOVER merging (2/2)     ← マージ中
-📝HANDOVER ready             ← 完了（60秒後に自動消去）
-```
 
 ## インストール
 
 ### 1. フックスクリプトをコピー
 
-`hooks/` の4ファイルを `~/.claude/hooks/` にコピーします：
+`hooks/` を `~/.claude/hooks/` にコピーします：
 
 ```bash
 mkdir -p ~/.claude/hooks
@@ -123,7 +113,6 @@ python --version
 | `handover_generate.py` | SessionStart (compact) | コンパクション後にバックグラウンドワーカーを起動 |
 | `handover_worker.py` | —（バックグラウンド） | jsonl 解析 → sonnet 呼び出し → HANDOVER 生成 |
 | `handover_inject.py` | UserPromptSubmit | マーカー検知 → ファイルパスをエージェントに注入 |
-| `handover_statusline.py` | —（オプション） | ステータス表示のスタンドアロンフォールバック |
 
 ## 出力先
 
@@ -133,32 +122,6 @@ HANDOVER ファイルはセッションの jsonl と同じディレクトリに�
 ~/.claude/projects/{project-path}/HANDOVER-{session_id}.md
 ```
 
-## ステータス表示の仕組み
-
-`handover_worker.py` は進捗を `~/.claude/handover-status.json` に書き出します：
-
-```json
-{
-  "phase": "pass1",
-  "step": 1,
-  "total": 2,
-  "session_id": "abc-123",
-  "updated_at": "2026-02-12T01:48:32"
-}
-```
-
-フェーズ: `pass1`（抽出中） → `pass2`（マージ中） → `done` | `error`
-
-カスタム statusline がある場合はこの JSON を読み取って表示できます。ない場合は `handover_statusline.py` をスタンドアロンの statusline として使えます：
-
-```json
-{
-  "statusLine": {
-    "type": "command",
-    "command": "python -X utf8 ~/.claude/hooks/handover_statusline.py"
-  }
-}
-```
 
 ## 要件
 
