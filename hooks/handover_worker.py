@@ -47,6 +47,17 @@ def extract_text(msg: dict) -> str:
     return ""
 
 
+def has_tool_use(msg: dict) -> bool:
+    """Check if a message contains tool_use blocks."""
+    content = msg.get("content", [])
+    if not isinstance(content, list):
+        return False
+    return any(
+        isinstance(block, dict) and block.get("type") == "tool_use"
+        for block in content
+    )
+
+
 def parse_jsonl(transcript_path: str):
     """Parse jsonl and return conversation entries + compaction info."""
     lines = Path(transcript_path).read_text(encoding="utf-8").splitlines()
@@ -87,6 +98,7 @@ def parse_jsonl(transcript_path: str):
         start_idx = 0  # First compaction: process everything
 
     # Extract conversation between start_idx and last_boundary
+    # Strategy: skip assistant tool-operation messages (noise), keep conversation
     conversation = []
     for i in range(start_idx, last_boundary):
         try:
@@ -100,6 +112,12 @@ def parse_jsonl(transcript_path: str):
 
         msg = obj.get("message", {})
         role = msg.get("role", entry_type)
+
+        # Assistant messages with tool_use → skip (operational noise)
+        # Decision rationale and discussion happen in pure-text assistant turns
+        if role == "assistant" and has_tool_use(msg):
+            continue
+
         text = extract_text(msg)
 
         if not text.strip():
@@ -109,9 +127,10 @@ def parse_jsonl(transcript_path: str):
         if role == "user" and len(text) < 10:
             continue
 
-        # Truncate individual messages to keep total manageable
-        if len(text) > 3000:
-            text = text[:3000] + "\n[...truncated...]"
+        # Truncate: user messages (directives/corrections) get more room
+        max_len = 2000 if role == "user" else 2000
+        if len(text) > max_len:
+            text = text[:max_len] + "\n[...truncated...]"
 
         conversation.append(f"[{role}]: {text}")
 
