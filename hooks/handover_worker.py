@@ -8,6 +8,7 @@ This keeps processed content separate from raw transcript noise.
 """
 
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -138,14 +139,19 @@ def parse_jsonl(transcript_path: str):
 
 
 def call_claude(prompt: str, timeout: int = 180) -> str | None:
-    """Call claude -p --model sonnet with Read tool access."""
+    """Call claude -p --model haiku with Read tool access."""
+    # Remove CLAUDECODE env var to avoid "nested session" block.
+    # Hooks inherit this var from the parent Claude Code process,
+    # which prevents claude -p from launching.
+    env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
     result = subprocess.run(
-        ["claude", "-p", "--model", "sonnet", "--allowedTools", "Read"],
+        ["claude", "-p", "--model", "haiku", "--allowedTools", "Read"],
         input=prompt,
         capture_output=True,
         text=True,
         timeout=timeout,
         encoding="utf-8",
+        env=env,
         creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
     )
     if result.returncode == 0 and result.stdout.strip():
