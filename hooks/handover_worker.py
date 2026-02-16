@@ -138,7 +138,7 @@ def parse_jsonl(transcript_path: str):
     return compaction_summary, conversation
 
 
-def call_claude(prompt: str, timeout: int = 180) -> str | None:
+def call_claude(prompt: str, timeout: int = 300) -> str | None:
     """Call claude -p --model haiku with Read tool access."""
     # Remove CLAUDECODE env var to avoid "nested session" block.
     # Hooks inherit this var from the parent Claude Code process,
@@ -234,7 +234,7 @@ Merge rules:
 - Write in English, use markdown headers
 - Output ONLY the merged HANDOVER document"""
 
-    return call_claude(prompt, timeout=120)
+    return call_claude(prompt, timeout=300)
 
 
 def main():
