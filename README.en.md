@@ -126,6 +126,10 @@ No additional packages needed — only standard library modules are used.
 | `handover_worker.py` | — (background process) | Parses jsonl, calls sonnet, writes HANDOVER |
 | `handover_inject.py` | UserPromptSubmit | Detects ready marker, injects file path |
 
+## /resume list cleanup
+
+`claude -p` calls create session history entries that pollute the `/resume` list. `handover_worker.py` uses `--output-format json` to capture the session_id and automatically deletes the session jsonl after HANDOVER generation.
+
 ## Output
 
 HANDOVER files are saved alongside session jsonl files:

@@ -124,6 +124,10 @@ python --version
 | `handover_worker.py` | —（バックグラウンド） | jsonl 解析 → sonnet 呼び出し → HANDOVER 生成 |
 | `handover_inject.py` | UserPromptSubmit | マーカー検知 → ファイルパスをエージェントに注入 |
 
+## /resume リスト汚染防止
+
+`claude -p` の呼び出しはセッション履歴に残り、`/resume` のリストを汚します。`handover_worker.py` は `--output-format json` で session_id を取得し、生成後にセッション jsonl を自動削除します。
+
 ## 出力先
 
 HANDOVER ファイルはセッションの jsonl と同じディレクトリに保存されます：
