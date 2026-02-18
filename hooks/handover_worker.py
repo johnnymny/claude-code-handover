@@ -139,13 +139,16 @@ def parse_jsonl(transcript_path: str):
 
 
 def call_claude(prompt: str, timeout: int = 300) -> str | None:
-    """Call claude -p --model haiku with Read tool access."""
-    # Remove CLAUDECODE env var to avoid "nested session" block.
-    # Hooks inherit this var from the parent Claude Code process,
-    # which prevents claude -p from launching.
+    """Call claude -p --model haiku with Read tool access.
+
+    Uses --output-format json to capture session_id, then deletes
+    the session jsonl to prevent /resume list pollution.
+    """
+    # Remove CLAUDECODE env var to avoid "nested session" block
     env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
     result = subprocess.run(
-        ["claude", "-p", "--model", "haiku", "--allowedTools", "Read"],
+        ["claude", "-p", "--model", "haiku", "--allowedTools", "Read",
+         "--output-format", "json"],
         input=prompt,
         capture_output=True,
         text=True,
@@ -154,9 +157,26 @@ def call_claude(prompt: str, timeout: int = 300) -> str | None:
         env=env,
         creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
     )
-    if result.returncode == 0 and result.stdout.strip():
+    if result.returncode != 0 or not result.stdout.strip():
+        return None
+
+    try:
+        data = json.loads(result.stdout)
+    except (json.JSONDecodeError, ValueError):
         return result.stdout.strip()
-    return None
+
+    # Delete session jsonl to keep /resume list clean
+    cleanup_session = data.get("session_id", "")
+    if cleanup_session:
+        projects_dir = Path.home() / ".claude" / "projects"
+        for jsonl_file in projects_dir.rglob(f"{cleanup_session}.jsonl"):
+            jsonl_file.unlink(missing_ok=True)
+            # Also remove session directory (subagents etc.) if it exists
+            session_dir = jsonl_file.parent / cleanup_session
+            if session_dir.is_dir():
+                shutil.rmtree(session_dir, ignore_errors=True)
+
+    return data.get("result", "")
 
 
 def pass1_extract(compaction_summary: str, conversation: list, work_dir: Path) -> str | None:
